@@ -1,0 +1,19 @@
+I have a bunch of microservices created with the Java 25, Spring Boot 3.x, Spring Cloud Stream with kafka binder.
+Every microservice is a processor: consumes a message from the kafka topic, then processes that message,
+produces a message to the outbound kafka topic.
+
+Now, we want to create a new microservice reusing as much components as possible, but the source should be a file.
+
+Suggest implementation of the following logic:
+1. Having properties with the following structure:
+application.properties:
+file-loader.source-directories.directory1=kafka.topic1
+file-loader.source-directories.directory2=kafka.topic2
+
+2. A process should run every second to check the directories (a keys in the file-loader.source-directories map) if the new file arrived
+
+3. If the new file arrived, then move the file to the /directory1/loaded and rename it adding a timestamp to the file name eg. File1-2025-10-18T18:14:00+00:00.csv
+
+4. Send a message with the notification that a file arrived. The message should contain the file path
+
+Use Java 25 features where possible, use java Stream api where possible, gradle, .properties instead of .yaml, var keyword for variables
