@@ -1,13 +1,18 @@
 package com.agilab.file_loading.notification;
 
-import module java.base;
 import com.agilab.file_loading.config.FileLoaderProperties;
+import java.util.Optional;
 import com.agilab.file_loading.event.FileLoadedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.stereotype.Service;
 
+/**
+ * Producer for sending file loaded notifications to Kafka.
+ * Resolves the appropriate binding based on the source directory
+ * and sends FileLoadedEvent messages.
+ */
 @Service
 @Slf4j
 @RequiredArgsConstructor

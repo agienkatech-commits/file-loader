@@ -8,11 +8,19 @@ import java.io.IOException;
 import java.nio.file.FileSystemException;
 import java.util.List;
 
+/**
+ * Bean configuration for file loader components.
+ * Configures retry template for file operations with appropriate exception handling.
+ */
 @Configuration
 public class FileLoaderBeans {
 
+    /**
+     * RetryTemplate for file operations.
+     * Retries on IOException and FileSystemException which are common in blob storage.
+     */
     @Bean
-    private RetryTemplate retryTemplate(FileLoaderProperties properties) {
+    public RetryTemplate retryTemplate(FileLoaderProperties properties) {
         return RetryTemplate.builder()
                 .maxAttempts(properties.getRetryAttempts())
                 .fixedBackoff(properties.getRetryDelay().toMillis())
