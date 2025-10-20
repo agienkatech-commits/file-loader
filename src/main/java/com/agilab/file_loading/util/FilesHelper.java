@@ -24,9 +24,7 @@ public class FilesHelper {
             return files
                     .filter(Files::isRegularFile)
                     .filter(FilesHelper::isFileStable) // Check if file is fully written
-                    .filter(file -> !file.getFileName().toString().startsWith("."))
-                    .filter(file -> !file.getFileName().toString().startsWith("~"))
-                    .filter(file -> !file.getFileName().toString().endsWith(".tmp"))
+                    .filter(FilesHelper::isNotTemporaryFile)
                     .sorted(Comparator.comparing(path -> {
                         try {
                             return Files.getLastModifiedTime(path);
@@ -36,6 +34,13 @@ public class FilesHelper {
                     }))
                     .collect(Collectors.toList());
         }
+    }
+
+    private static boolean isNotTemporaryFile(Path file) {
+        var fileName = file.getFileName().toString();
+        return !fileName.startsWith(".")
+                && !fileName.startsWith("~")
+                && !fileName.endsWith(".tmp");
     }
 
     private static boolean isFileStable(Path file) {
@@ -67,38 +72,18 @@ public class FilesHelper {
     }
 
     public static String getNameWithoutExtension(String fileName) {
-        return Optional.of(fileName.lastIndexOf('.'))
-                .filter(index -> index > 0)
-                .map(index -> fileName.substring(0, index))
-                .orElse(fileName);
+        var lastDotIndex = fileName.lastIndexOf('.');
+        return switch (lastDotIndex) {
+            case -1, 0 -> fileName;
+            default -> fileName.substring(0, lastDotIndex);
+        };
     }
 
     public static String getFileExtension(String fileName) {
-        return Optional.of(fileName.lastIndexOf('.'))
-                .filter(index -> index > 0)
-                .map(fileName::substring)
-                .orElse("");
-    }
-
-    public static Map<String, Object> buildFileMetadata(Path sourceFile) {
-        var metadata = new HashMap<String, Object>();
-        try {
-            var sourceAttrs = Files.readAttributes(sourceFile, BasicFileAttributes.class);
-            metadata.put("originalSize", sourceAttrs.size());
-            metadata.put("originalLastModified", sourceAttrs.lastModifiedTime().toString());
-        } catch (Exception e) {
-            log.debug("Could not read source file attributes for {}", sourceFile, e);
-        }
-        return metadata;
-    }
-
-    public static void updateMetadataWithTarget(Map<String, Object> metadata, Path targetFile) {
-        try {
-            var targetAttrs = Files.readAttributes(targetFile, BasicFileAttributes.class);
-            metadata.put("processedSize", targetAttrs.size());
-            metadata.put("processedAt", targetAttrs.creationTime().toString());
-        } catch (Exception e) {
-            log.debug("Could not read target file attributes for {}", targetFile, e);
-        }
+        var lastDotIndex = fileName.lastIndexOf('.');
+        return switch (lastDotIndex) {
+            case -1, 0 -> "";
+            default -> fileName.substring(lastDotIndex);
+        };
     }
 }

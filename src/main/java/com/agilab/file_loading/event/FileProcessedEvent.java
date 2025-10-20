@@ -9,15 +9,10 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class FileProcessedEvent {
-    private String originalFilePath;
-    private String processedFilePath;
-    private String sourceDirectory;
-    private Instant timestamp;
-    private String fileName;
-    private Map<String, Object> metadata = new HashMap<>();
+public record FileProcessedEvent (String originalFilePath,
+                                  String processedFilePath,
+                                  String sourceDirectory,
+                                  Instant timestamp,
+                                  String fileName,
+                                  Map<String, Object> metadata) {
 }

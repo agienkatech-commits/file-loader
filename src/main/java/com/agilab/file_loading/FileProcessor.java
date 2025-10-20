@@ -48,14 +48,7 @@ public class FileProcessor {
     }
 
     private FileProcessedEvent createLoadedEvent(Path sourceFile, String baseDirectory, Path loadedFile, String newFileName) {
-        return FileProcessedEvent.builder()
-                .originalFilePath(sourceFile.toString())
-                .processedFilePath(loadedFile.toString())
-                .sourceDirectory(baseDirectory)
-                .timestamp(Instant.now())
-                .fileName(newFileName)
-                .metadata(new HashMap<>())
-                .build();
+        return new FileProcessedEvent(sourceFile.toString(),loadedFile.toString(), baseDirectory, Instant.now(), newFileName, new HashMap<>());
     }
 
     private String getNewFileName(String originalName) {
