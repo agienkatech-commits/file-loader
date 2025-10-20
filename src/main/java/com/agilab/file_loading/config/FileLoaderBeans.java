@@ -12,7 +12,7 @@ import java.util.List;
 public class FileLoaderBeans {
 
     @Bean
-    private RetryTemplate retryTemplate(FileLoaderProperties properties) {
+    public RetryTemplate retryTemplate(FileLoaderProperties properties) {
         return RetryTemplate.builder()
                 .maxAttempts(properties.getRetryAttempts())
                 .fixedBackoff(properties.getRetryDelay().toMillis())

@@ -1,13 +1,17 @@
 package com.agilab.file_loading;
 
-import module java.base;
 import com.agilab.file_loading.config.FileLoaderProperties;
 import com.agilab.file_loading.event.FileProcessedEvent;
 import com.agilab.file_loading.util.FilesHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Service;
+
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 @Service
 @Slf4j
@@ -23,7 +27,7 @@ public class FileProcessingService {
     public List<FileProcessedEvent> processNewFiles() {
         return properties.getSourceDirectories().entrySet().stream()
             .flatMap(entry -> processDirectoryEntry(entry.getKey()))
-            .collect(Collectors.toList());
+            .toList();
     }
     
     private Stream<FileProcessedEvent> processDirectoryEntry(String baseDirectory) {

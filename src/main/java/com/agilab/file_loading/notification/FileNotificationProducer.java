@@ -1,13 +1,14 @@
 package com.agilab.file_loading.notification;
 
-import module java.base;
-
 import com.agilab.file_loading.config.FileLoaderProperties;
 import com.agilab.file_loading.event.FileProcessedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Optional;
 
 @Service
 @Slf4j
@@ -31,7 +32,13 @@ public class FileNotificationProducer {
     }
 
     public void sendFileNotifications(List<FileProcessedEvent> events) {
-        events.forEach(this::sendFileNotification);
+        var failedCount = events.stream()
+                .filter(event -> !sendFileNotification(event))
+                .count();
+        
+        if (failedCount > 0) {
+            log.warn("Failed to send {} out of {} notifications", failedCount, events.size());
+        }
     }
 
     private Optional<String> resolveBindingAndSend(FileProcessedEvent event) {

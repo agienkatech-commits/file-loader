@@ -1,13 +1,12 @@
 package com.agilab.file_loading;
 
-import module java.base;
-
 import com.agilab.file_loading.event.FileProcessedEvent;
 import com.agilab.file_loading.notification.FileNotificationProducer;
-import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 @Component
 @Slf4j
@@ -28,7 +27,7 @@ public class BlobFilePollingScheduler {
         try {
             log.debug("Polling blob containers for new files...");
 
-            List<FileProcessedEvent> events = fileProcessingService.processNewFiles();
+            var events = fileProcessingService.processNewFiles();
             if (!events.isEmpty()) {
                 notificationProducer.sendFileNotifications(events);
                 log.info("Processed {} new blobs", events.size());
