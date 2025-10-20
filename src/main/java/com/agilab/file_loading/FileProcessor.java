@@ -13,10 +13,16 @@ import org.springframework.stereotype.Component;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
-import java.util.HashMap;
+import java.util.Map;
 
 import static com.agilab.file_loading.util.FilesHelper.*;
 
+/**
+ * Component responsible for processing individual files.
+ * Handles the file lifecycle: moving to loading directory, sending notifications,
+ * and moving to final loaded directory. Implements retry logic and error handling.
+ * Can be reused for Kafka-consumer to file-processor pattern.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -60,7 +66,7 @@ public class FileProcessor {
                 e.getMessage(),
                 e.getClass().getSimpleName(),
                 Instant.now(),
-                new HashMap<>()
+                Map.of()
         );
         errorNotificationProducer.sendErrorNotification(errorEvent);
     }
@@ -72,13 +78,13 @@ public class FileProcessor {
                 errorMessage,
                 "NotificationFailure",
                 Instant.now(),
-                new HashMap<>()
+                Map.of()
         );
         errorNotificationProducer.sendErrorNotification(errorEvent);
     }
 
     private FileLoadedEvent createLoadedEvent(Path sourceFile, String baseDirectory, Path loadedFile, String newFileName) {
-        return new FileLoadedEvent(sourceFile.toString(), loadedFile.toString(), baseDirectory, Instant.now(), newFileName, new HashMap<>());
+        return new FileLoadedEvent(sourceFile.toString(), loadedFile.toString(), baseDirectory, Instant.now(), newFileName, Map.of());
     }
 
     private String getNewFileName(String originalName) {

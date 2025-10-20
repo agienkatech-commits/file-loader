@@ -9,10 +9,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.HashMap;
+import java.util.Map;
 
 import static com.agilab.file_loading.util.FilesHelper.findNewFiles;
 
+/**
+ * Service responsible for processing new files from configured directories.
+ * Scans directories in parallel and delegates individual file processing to FileProcessor.
+ * Implements error handling with notification to error channel.
+ */
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -23,8 +28,9 @@ public class FileProcessingService {
     private final ErrorNotificationProducer errorNotificationProducer;
 
     public void processNewFiles() {
-        properties.getSourceDirectories().entrySet().stream().parallel()
-                .forEach(entry -> processDirectory(entry.getKey()));
+        properties.getSourceDirectories().keySet().stream()
+                .parallel()
+                .forEach(this::processDirectory);
     }
 
     private void processDirectory(String baseDirectory) {
@@ -46,7 +52,7 @@ public class FileProcessingService {
                 e.getMessage(),
                 e.getClass().getSimpleName(),
                 Instant.now(),
-                new HashMap<>()
+                Map.of()
         );
         errorNotificationProducer.sendErrorNotification(errorEvent);
     }

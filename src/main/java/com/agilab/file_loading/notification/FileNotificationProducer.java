@@ -8,6 +8,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.stereotype.Service;
 
+/**
+ * Producer for sending file loaded notifications to Kafka.
+ * Resolves the appropriate binding based on the source directory
+ * and sends FileLoadedEvent messages.
+ */
 @Service
 @Slf4j
 @RequiredArgsConstructor

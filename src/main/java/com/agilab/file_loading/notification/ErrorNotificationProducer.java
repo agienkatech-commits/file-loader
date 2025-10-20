@@ -6,6 +6,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.stereotype.Service;
 
+/**
+ * Producer for sending file processing error notifications to Kafka.
+ * All errors are sent to a dedicated error channel for monitoring and debugging.
+ */
 @Service
 @Slf4j
 @RequiredArgsConstructor
