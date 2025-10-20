@@ -19,6 +19,5 @@ public class FileProcessedEvent {
     private String sourceDirectory;  // Changed to sourceDirectory for producer to resolve binding
     private Instant timestamp;
     private String fileName;
-    private String baseDirectory;
     private Map<String, Object> metadata = new HashMap<>();
 }

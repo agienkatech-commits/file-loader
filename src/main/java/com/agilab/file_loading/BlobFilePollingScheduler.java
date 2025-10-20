@@ -29,12 +29,6 @@ public class BlobFilePollingScheduler {
             log.debug("Polling blob containers for new files...");
 
             List<FileProcessedEvent> events = fileProcessingService.processNewFiles();
-
-            if (!events.isEmpty()) {
-                notificationProducer.sendFileNotifications(events);
-                log.info("Processed {} new files", events.size());
-
-            }
             if (!events.isEmpty()) {
                 notificationProducer.sendFileNotifications(events);
                 log.info("Processed {} new blobs", events.size());

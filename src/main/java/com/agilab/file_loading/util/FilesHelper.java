@@ -82,20 +82,25 @@ public class FilesHelper {
                 .orElse("");
     }
 
-    public Map<String, Object> buildFileMetadata(Path sourceFile, Path targetFile) {
+    public Map<String, Object> buildFileMetadata(Path sourceFile) {
         var metadata = new HashMap<String, Object>();
         try {
             var sourceAttrs = Files.readAttributes(sourceFile, BasicFileAttributes.class);
-            var targetAttrs = Files.readAttributes(targetFile, BasicFileAttributes.class);
-
             metadata.put("originalSize", sourceAttrs.size());
-            metadata.put("processedSize", targetAttrs.size());
-            metadata.put("originalLastModified", sourceAttrs.
-                    lastModifiedTime().toString());
-            metadata.put("processedAt", targetAttrs.creationTime().toString());
+            metadata.put("originalLastModified", sourceAttrs.lastModifiedTime().toString());
         } catch (Exception e) {
-            log.debug("Could not read file attributes", e);
+            log.debug("Could not read source file attributes for {}", sourceFile, e);
         }
         return metadata;
+    }
+
+    public void updateMetadataWithTarget(Map<String, Object> metadata, Path targetFile) {
+        try {
+            var targetAttrs = Files.readAttributes(targetFile, BasicFileAttributes.class);
+            metadata.put("processedSize", targetAttrs.size());
+            metadata.put("processedAt", targetAttrs.creationTime().toString());
+        } catch (Exception e) {
+            log.debug("Could not read target file attributes for {}", targetFile, e);
+        }
     }
 }
