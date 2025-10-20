@@ -1,7 +1,7 @@
 package com.agilab.file_loading;
 
 import com.agilab.file_loading.config.FileLoaderProperties;
-import com.agilab.file_loading.event.FileProcessedEvent;
+import com.agilab.file_loading.event.FileLoadedEvent;
 import com.agilab.file_loading.notification.FileNotificationProducer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,8 +47,8 @@ public class FileProcessor {
         }
     }
 
-    private FileProcessedEvent createLoadedEvent(Path sourceFile, String baseDirectory, Path loadedFile, String newFileName) {
-        return new FileProcessedEvent(sourceFile.toString(),loadedFile.toString(), baseDirectory, Instant.now(), newFileName, new HashMap<>());
+    private FileLoadedEvent createLoadedEvent(Path sourceFile, String baseDirectory, Path loadedFile, String newFileName) {
+        return new FileLoadedEvent(sourceFile.toString(),loadedFile.toString(), baseDirectory, Instant.now(), newFileName, new HashMap<>());
     }
 
     private String getNewFileName(String originalName) {
