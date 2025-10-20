@@ -26,9 +26,7 @@ public class FilesHelper {
             return files
                     .filter(Files::isRegularFile)
                     .filter(this::isFileStable) // Check if file is fully written
-                    .filter(file -> !file.getFileName().toString().startsWith("."))
-                    .filter(file -> !file.getFileName().toString().startsWith("~"))
-                    .filter(file -> !file.getFileName().toString().endsWith(".tmp"))
+                    .filter(this::isNotTemporaryFile)
                     .sorted(Comparator.comparing(path -> {
                         try {
                             return Files.getLastModifiedTime(path);
@@ -40,6 +38,18 @@ public class FilesHelper {
         }
     }
 
+    private boolean isNotTemporaryFile(Path file) {
+        var fileName = file.getFileName().toString();
+        return !fileName.startsWith(".") 
+                && !fileName.startsWith("~") 
+                && !fileName.endsWith(".tmp");
+    }
+
+    /**
+     * Checks if a file is stable (not being written to).
+     * Note: Uses Thread.sleep which is a blocking operation. In a high-throughput scenario,
+     * consider using file system watchers or comparing file attributes asynchronously.
+     */
     private boolean isFileStable(Path file) {
         try {
             // Check if file size is stable (not being written to)
