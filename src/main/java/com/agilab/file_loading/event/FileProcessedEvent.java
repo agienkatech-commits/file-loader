@@ -16,7 +16,7 @@ import java.util.Map;
 public class FileProcessedEvent {
     private String originalFilePath;
     private String processedFilePath;
-    private String sourceDirectory;  // Changed to sourceDirectory for producer to resolve binding
+    private String sourceDirectory;
     private Instant timestamp;
     private String fileName;
     private Map<String, Object> metadata = new HashMap<>();

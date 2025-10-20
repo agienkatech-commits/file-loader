@@ -1,9 +1,8 @@
 package com.agilab.file_loading.util;
 
-import com.agilab.file_loading.config.FileLoaderProperties;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.file.AtomicMoveNotSupportedException;
@@ -18,16 +17,13 @@ import java.util.stream.Stream;
 
 @Slf4j
 @RequiredArgsConstructor
-@Component
 public class FilesHelper {
 
-    private final FileLoaderProperties properties;
-
-    public List<Path> findNewFiles(Path newDirectory) throws IOException {
+    public static List<Path> findNewFiles(Path newDirectory) throws IOException {
         try (Stream<Path> files = Files.list(newDirectory)) {
             return files
                     .filter(Files::isRegularFile)
-                    .filter(this::isFileStable) // Check if file is fully written
+                    .filter(FilesHelper::isFileStable) // Check if file is fully written
                     .filter(file -> !file.getFileName().toString().startsWith("."))
                     .filter(file -> !file.getFileName().toString().startsWith("~"))
                     .filter(file -> !file.getFileName().toString().endsWith(".tmp"))
@@ -42,11 +38,11 @@ public class FilesHelper {
         }
     }
 
-    private boolean isFileStable(Path file) {
+    private static boolean isFileStable(Path file) {
         try {
             // Check if file size is stable (not being written to)
             long size1 = Files.size(file);
-            Thread.sleep(properties.getFileStabilityCheckDelay().toMillis());
+            Thread.sleep(1000);
             long size2 = Files.size(file);
 
             return size1 == size2 && size1 > 0;
@@ -56,33 +52,35 @@ public class FilesHelper {
         }
     }
 
-    public void moveFileAtomically(Path source, Path target) throws IOException {
+    @SneakyThrows
+    public static Path moveFileAtomically(Path source, Path target) {
         try {
             // Try atomic move first (works on most mounted volumes)
-            Files.move(source, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            return Files.move(source, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
         } catch (AtomicMoveNotSupportedException e) {
             log.debug("Atomic move not supported, falling back to copy+delete for: {}", source);
             // Fallback: copy then delete (for blob storage that doesn't support atomic moves)
-            Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+            var targetPath = Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
             Files.delete(source);
+            return targetPath;
         }
     }
 
-    public String getNameWithoutExtension(String fileName) {
+    public static String getNameWithoutExtension(String fileName) {
         return Optional.of(fileName.lastIndexOf('.'))
                 .filter(index -> index > 0)
                 .map(index -> fileName.substring(0, index))
                 .orElse(fileName);
     }
 
-    public String getFileExtension(String fileName) {
+    public static String getFileExtension(String fileName) {
         return Optional.of(fileName.lastIndexOf('.'))
                 .filter(index -> index > 0)
                 .map(fileName::substring)
                 .orElse("");
     }
 
-    public Map<String, Object> buildFileMetadata(Path sourceFile) {
+    public static Map<String, Object> buildFileMetadata(Path sourceFile) {
         var metadata = new HashMap<String, Object>();
         try {
             var sourceAttrs = Files.readAttributes(sourceFile, BasicFileAttributes.class);
@@ -94,7 +92,7 @@ public class FilesHelper {
         return metadata;
     }
 
-    public void updateMetadataWithTarget(Map<String, Object> metadata, Path targetFile) {
+    public static void updateMetadataWithTarget(Map<String, Object> metadata, Path targetFile) {
         try {
             var targetAttrs = Files.readAttributes(targetFile, BasicFileAttributes.class);
             metadata.put("processedSize", targetAttrs.size());

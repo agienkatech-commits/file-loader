@@ -1,7 +1,6 @@
 package com.agilab.file_loading.notification;
 
 import module java.base;
-
 import com.agilab.file_loading.config.FileLoaderProperties;
 import com.agilab.file_loading.event.FileProcessedEvent;
 import lombok.RequiredArgsConstructor;
@@ -30,10 +29,6 @@ public class FileNotificationProducer {
                 });
     }
 
-    public void sendFileNotifications(List<FileProcessedEvent> events) {
-        events.forEach(this::sendFileNotification);
-    }
-
     private Optional<String> resolveBindingAndSend(FileProcessedEvent event) {
         return Optional.ofNullable(fileLoaderProperties.getSourceDirectories().get(event.getSourceDirectory()))
                 .filter(binding -> sendToBinding(binding, event));
@@ -41,7 +36,7 @@ public class FileNotificationProducer {
 
     private boolean sendToBinding(String binding, FileProcessedEvent event) {
         try {
-            boolean sent = streamBridge.send(binding, event);
+            var sent = streamBridge.send(binding, event);
             if (!sent) {
                 log.error("Failed to send file notification to binding {}: {}", binding, event.getProcessedFilePath());
             }

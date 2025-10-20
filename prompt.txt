@@ -4,6 +4,10 @@ produces a message to the outbound kafka topic.
 
 Now, we want to create a new microservice reusing as much components as possible, but the source should be a file.
 
+Review the code, suggest improvements and highlight potential problems.
+
+Use Java 25 features where possible, use java Stream api where possible, gradle, .properties instead of .yaml, var keyword for variables
+
 Suggest implementation of the following logic:
 1. Having properties with the following structure:
 application.properties:
@@ -16,4 +20,3 @@ file-loader.source-directories.directory2=kafka.topic2
 
 4. Send a message with the notification that a file arrived. The message should contain the file path
 
-Use Java 25 features where possible, use java Stream api where possible, gradle, .properties instead of .yaml, var keyword for variables

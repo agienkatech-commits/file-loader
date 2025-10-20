@@ -15,10 +15,9 @@ public class FileLoaderProperties {
     private Map<String, String> sourceDirectories = new HashMap<>();
     private Duration pollingInterval = Duration.ofSeconds(3); // Slightly longer for blob storage
     private String newSubdirectory = "new";
-    private String processingSubdirectory = "processing";
-    private String processedSubdirectory = "loaded";
+    private String loadingSubdirectory = "loading";
+    private String loadedSubdirectory = "loaded";
     private String errorSubdirectory = "error";
-    private int batchSize = 50; // Process files in batches
     private int retryAttempts = 3;
     private Duration retryDelay = Duration.ofSeconds(2);
     private Duration fileStabilityCheckDelay = Duration.ofSeconds(1); // Wait for file to be fully written
