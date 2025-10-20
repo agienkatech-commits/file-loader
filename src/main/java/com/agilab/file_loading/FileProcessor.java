@@ -38,6 +38,8 @@ public class FileProcessor {
 
     private Optional<FileProcessedEvent> processFile(Path sourceFile, String baseDirectory) {
         try {
+            // 1. Read attributes from the source file first
+            var metadata = filesHelper.buildFileMetadata(sourceFile);
 
             // 2. Ensure processed directory exists
             var processedDir = Paths.get(baseDirectory, properties.getProcessedSubdirectory());
@@ -47,8 +49,6 @@ public class FileProcessor {
             var originalName = sourceFile.getFileName().toString();
             var newFileName = getNewFileName(originalName);
             var targetFile = processedDir.resolve(newFileName);
-            // 1. Read attributes from the source file first
-            var metadata = filesHelper.buildFileMetadata(sourceFile);
 
             // 4. Move the file
             filesHelper.moveFileAtomically(sourceFile, targetFile);
@@ -82,7 +82,8 @@ public class FileProcessor {
 
     private void handleFailedFile(Path sourceFile, String baseDirectory) {
         try {
-            var errorDir = Paths.get(baseDirectory, properties.getErrorSubdirectory()); // Or get from properties
+            var errorDir = Paths.get(baseDirectory, properties.getErrorSubdirectory());
+            Files.createDirectories(errorDir);
             var targetFile = errorDir.resolve(sourceFile.getFileName());
             filesHelper.moveFileAtomically(sourceFile, targetFile);
             log.info("Moved failed file to error directory: {}", targetFile);

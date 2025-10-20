@@ -13,8 +13,6 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -24,7 +22,7 @@ public class FilesHelper {
     private final FileLoaderProperties properties;
 
     public List<Path> findNewFiles(Path newDirectory) throws IOException {
-        try (Stream<Path> files = Files.list(newDirectory)) {
+        try (var files = Files.list(newDirectory)) {
             return files
                     .filter(Files::isRegularFile)
                     .filter(this::isFileStable) // Check if file is fully written
@@ -38,16 +36,16 @@ public class FilesHelper {
                             return FileTime.fromMillis(0);
                         }
                     }))
-                    .collect(Collectors.toList());
+                    .toList();
         }
     }
 
     private boolean isFileStable(Path file) {
         try {
             // Check if file size is stable (not being written to)
-            long size1 = Files.size(file);
+            var size1 = Files.size(file);
             Thread.sleep(properties.getFileStabilityCheckDelay().toMillis());
-            long size2 = Files.size(file);
+            var size2 = Files.size(file);
 
             return size1 == size2 && size1 > 0;
         } catch (Exception e) {
@@ -69,17 +67,19 @@ public class FilesHelper {
     }
 
     public String getNameWithoutExtension(String fileName) {
-        return Optional.of(fileName.lastIndexOf('.'))
-                .filter(index -> index > 0)
-                .map(index -> fileName.substring(0, index))
-                .orElse(fileName);
+        var lastDotIndex = fileName.lastIndexOf('.');
+        return switch (lastDotIndex) {
+            case -1, 0 -> fileName;
+            default -> fileName.substring(0, lastDotIndex);
+        };
     }
 
     public String getFileExtension(String fileName) {
-        return Optional.of(fileName.lastIndexOf('.'))
-                .filter(index -> index > 0)
-                .map(fileName::substring)
-                .orElse("");
+        var lastDotIndex = fileName.lastIndexOf('.');
+        return switch (lastDotIndex) {
+            case -1, 0 -> "";
+            default -> fileName.substring(lastDotIndex);
+        };
     }
 
     public Map<String, Object> buildFileMetadata(Path sourceFile) {
