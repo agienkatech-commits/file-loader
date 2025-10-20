@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
+import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -19,11 +20,11 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 public class FilesHelper {
 
-    public static List<Path> findNewFiles(Path newDirectory) throws IOException {
-        try (Stream<Path> files = Files.list(newDirectory)) {
+    public static List<Path> findNewFiles(Path newDirectory, Duration stabilityCheckDelay) throws IOException {
+        try (var files = Files.list(newDirectory)) {
             return files
                     .filter(Files::isRegularFile)
-                    .filter(FilesHelper::isFileStable) // Check if file is fully written
+                    .filter(file -> isFileStable(file, stabilityCheckDelay)) // Check if file is fully written
                     .filter(FilesHelper::isNotTemporaryFile)
                     .sorted(Comparator.comparing(path -> {
                         try {
@@ -32,7 +33,7 @@ public class FilesHelper {
                             return FileTime.fromMillis(0);
                         }
                     }))
-                    .collect(Collectors.toList());
+                    .toList();
         }
     }
 
@@ -43,12 +44,12 @@ public class FilesHelper {
                 && !fileName.endsWith(".tmp");
     }
 
-    private static boolean isFileStable(Path file) {
+    private static boolean isFileStable(Path file, Duration stabilityCheckDelay) {
         try {
             // Check if file size is stable (not being written to)
-            long size1 = Files.size(file);
-            Thread.sleep(1000);
-            long size2 = Files.size(file);
+            var size1 = Files.size(file);
+            Thread.sleep(stabilityCheckDelay.toMillis());
+            var size2 = Files.size(file);
 
             return size1 == size2 && size1 > 0;
         } catch (Exception e) {

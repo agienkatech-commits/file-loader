@@ -2,6 +2,8 @@ package com.agilab.file_loading;
 
 import com.agilab.file_loading.config.FileLoaderProperties;
 import com.agilab.file_loading.event.FileLoadedEvent;
+import com.agilab.file_loading.event.FileProcessingErrorEvent;
+import com.agilab.file_loading.notification.ErrorNotificationProducer;
 import com.agilab.file_loading.notification.FileNotificationProducer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +23,7 @@ import static com.agilab.file_loading.util.FilesHelper.*;
 public class FileProcessor {
 
     private final FileNotificationProducer notificationProducer;
+    private final ErrorNotificationProducer errorNotificationProducer;
     private final RetryTemplate retryTemplate;
     private final FileLoaderProperties properties;
 
@@ -40,15 +43,42 @@ public class FileProcessor {
             if (notificationSent) {
                 retryTemplate.execute(context -> moveFileAtomically(loadingFile, loadedFilePath));
                 log.info("Successfully processed and moved to: {}", loadedFilePath);
+            } else {
+                sendErrorNotification(sourceFile.toString(), baseDirectory, "Failed to send notification");
             }
         } catch (Exception e) {
             log.error("Failed to process file after {} attempts: {}",
                     properties.getRetryAttempts(), sourceFile, e);
+            sendErrorNotification(sourceFile.toString(), baseDirectory, e);
         }
     }
 
+    private void sendErrorNotification(String filePath, String baseDirectory, Exception e) {
+        var errorEvent = new FileProcessingErrorEvent(
+                filePath,
+                baseDirectory,
+                e.getMessage(),
+                e.getClass().getSimpleName(),
+                Instant.now(),
+                new HashMap<>()
+        );
+        errorNotificationProducer.sendErrorNotification(errorEvent);
+    }
+
+    private void sendErrorNotification(String filePath, String baseDirectory, String errorMessage) {
+        var errorEvent = new FileProcessingErrorEvent(
+                filePath,
+                baseDirectory,
+                errorMessage,
+                "NotificationFailure",
+                Instant.now(),
+                new HashMap<>()
+        );
+        errorNotificationProducer.sendErrorNotification(errorEvent);
+    }
+
     private FileLoadedEvent createLoadedEvent(Path sourceFile, String baseDirectory, Path loadedFile, String newFileName) {
-        return new FileLoadedEvent(sourceFile.toString(),loadedFile.toString(), baseDirectory, Instant.now(), newFileName, new HashMap<>());
+        return new FileLoadedEvent(sourceFile.toString(), loadedFile.toString(), baseDirectory, Instant.now(), newFileName, new HashMap<>());
     }
 
     private String getNewFileName(String originalName) {
