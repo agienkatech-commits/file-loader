@@ -17,9 +17,7 @@ public class FileLoaderProperties {
     private String newSubdirectory = "new";
     private String loadingSubdirectory = "loading";
     private String loadedSubdirectory = "loaded";
-    private String errorSubdirectory = "error";
     private int retryAttempts = 3;
     private Duration retryDelay = Duration.ofSeconds(2);
-    private Duration fileStabilityCheckDelay = Duration.ofSeconds(1); // Wait for file to be fully written
     private Duration stuckFileThreshold = Duration.ofMinutes(5);
 }
