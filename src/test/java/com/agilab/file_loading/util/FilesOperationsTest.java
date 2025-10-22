@@ -12,7 +12,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class FilesHelperTest {
+class FilesOperationsTest {
 
     @TempDir
     Path tempDir;
@@ -37,7 +37,7 @@ class FilesHelperTest {
         Thread.sleep(1100);
 
         // When
-        List<Path> files = FilesHelper.findNewFiles(testDir);
+        List<Path> files = FilesOperations.findNewFiles(testDir);
 
         // Then
         assertThat(files).hasSize(2);
@@ -61,7 +61,7 @@ class FilesHelperTest {
         Thread.sleep(1100);
 
         // When
-        List<Path> files = FilesHelper.findNewFiles(testDir);
+        List<Path> files = FilesOperations.findNewFiles(testDir);
 
         // Then
         assertThat(files).hasSize(1);
@@ -79,7 +79,7 @@ class FilesHelperTest {
         Thread.sleep(1100);
 
         // When
-        List<Path> files = FilesHelper.findNewFiles(testDir);
+        List<Path> files = FilesOperations.findNewFiles(testDir);
 
         // Then
         assertThat(files).hasSize(1);
@@ -94,7 +94,7 @@ class FilesHelperTest {
         Path targetFile = testDir.resolve("target.txt");
 
         // When
-        Path result = FilesHelper.moveFileAtomically(sourceFile, targetFile);
+        Path result = FilesOperations.moveFileAtomically(sourceFile, targetFile);
 
         // Then
         assertThat(result).isEqualTo(targetFile);
@@ -106,18 +106,18 @@ class FilesHelperTest {
     @Test
     void getNameWithoutExtension_shouldHandleRegularFiles() {
         // When/Then
-        assertEquals("file", FilesHelper.getNameWithoutExtension("file.txt"));
-        assertEquals("archive.tar", FilesHelper.getNameWithoutExtension("archive.tar.gz"));
-        assertEquals("noextension", FilesHelper.getNameWithoutExtension("noextension"));
-        assertEquals(".dotfile", FilesHelper.getNameWithoutExtension(".dotfile"));
+        assertEquals("file", FilesOperations.getNameWithoutExtension("file.txt"));
+        assertEquals("archive.tar", FilesOperations.getNameWithoutExtension("archive.tar.gz"));
+        assertEquals("noextension", FilesOperations.getNameWithoutExtension("noextension"));
+        assertEquals(".dotfile", FilesOperations.getNameWithoutExtension(".dotfile"));
     }
 
     @Test
     void getFileExtension_shouldHandleRegularFiles() {
         // When/Then
-        assertEquals(".txt", FilesHelper.getFileExtension("file.txt"));
-        assertEquals(".gz", FilesHelper.getFileExtension("archive.tar.gz"));
-        assertEquals("", FilesHelper.getFileExtension("noextension"));
-        assertEquals("", FilesHelper.getFileExtension(".dotfile"));
+        assertEquals(".txt", FilesOperations.getFileExtension("file.txt"));
+        assertEquals(".gz", FilesOperations.getFileExtension("archive.tar.gz"));
+        assertEquals("", FilesOperations.getFileExtension("noextension"));
+        assertEquals("", FilesOperations.getFileExtension(".dotfile"));
     }
 }

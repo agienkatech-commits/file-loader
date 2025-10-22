@@ -1,8 +1,10 @@
 package com.agilab.file_loading.util;
 
+import com.agilab.file_loading.config.FileLoaderProperties;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.retry.support.RetryTemplate;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.file.AtomicMoveNotSupportedException;
@@ -17,14 +19,18 @@ import java.util.stream.Stream;
 
 @Slf4j
 @RequiredArgsConstructor
-public class FilesHelper {
+@Component
+public class FilesOperations {
+
+    private final RetryTemplate retryTemplate;
+    private final FileLoaderProperties properties;
 
     public static List<Path> findNewFiles(Path newDirectory) throws IOException {
         try (Stream<Path> files = Files.list(newDirectory)) {
             return files
                     .filter(Files::isRegularFile)
-                    .filter(FilesHelper::isFileStable) // Check if file is fully written
-                    .filter(FilesHelper::isNotTemporaryFile)
+                    .filter(FilesOperations::isFileStable) // Check if file is fully written
+                    .filter(FilesOperations::isNotTemporaryFile)
                     .sorted(Comparator.comparing(path -> {
                         try {
                             return Files.getLastModifiedTime(path);
@@ -57,8 +63,16 @@ public class FilesHelper {
         }
     }
 
-    @SneakyThrows
-    public static Path moveFileAtomically(Path source, Path target) {
+    public void moveFileAtomicallyWithRetry(Path source, Path target) {
+        try {
+            retryTemplate.execute(context -> moveFileAtomically(source, target));
+        } catch (IOException e) {
+            log.error("Failed to process file after {} attempts: {}",
+                    properties.getRetryAttempts(), source, e);
+        }
+    }
+
+    public static Path moveFileAtomically(Path source, Path target) throws IOException {
         try {
             // Try atomic move first (works on most mounted volumes)
             return Files.move(source, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);

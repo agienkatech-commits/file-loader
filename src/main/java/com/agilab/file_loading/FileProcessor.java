@@ -3,6 +3,7 @@ package com.agilab.file_loading;
 import com.agilab.file_loading.config.FileLoaderProperties;
 import com.agilab.file_loading.event.FileLoadedEvent;
 import com.agilab.file_loading.notification.FileNotificationProducer;
+import com.agilab.file_loading.util.FilesOperations;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.retry.support.RetryTemplate;
@@ -13,7 +14,7 @@ import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.HashMap;
 
-import static com.agilab.file_loading.util.FilesHelper.*;
+import static com.agilab.file_loading.util.FilesOperations.*;
 
 @Slf4j
 @Component
@@ -21,15 +22,15 @@ import static com.agilab.file_loading.util.FilesHelper.*;
 public class FileProcessor {
 
     private final FileNotificationProducer notificationProducer;
-    private final RetryTemplate retryTemplate;
+    private final FilesOperations filesOperations;
     private final FileLoaderProperties properties;
 
     void processFile(Path sourceFile, String baseDirectory) {
         try {
             var loadingDir = Paths.get(baseDirectory, properties.getLoadingSubdirectory());
             var loadingFile = loadingDir.resolve(sourceFile.getFileName());
-            var movedPath = retryTemplate.execute(context -> moveFileAtomically(sourceFile, loadingFile));
-            log.info("Moved to processing: {}", movedPath);
+            filesOperations.moveFileAtomicallyWithRetry(sourceFile, loadingFile);
+            log.info("Moved to processing: {}", loadingFile);
 
             var loadedDir = Paths.get(baseDirectory, properties.getLoadedSubdirectory());
             var loadedFileName = getNewFileName(sourceFile.getFileName().toString());
@@ -38,12 +39,11 @@ public class FileProcessor {
             var notificationSent = notificationProducer.sendFileNotification(loadedEvent);
 
             if (notificationSent) {
-                retryTemplate.execute(context -> moveFileAtomically(loadingFile, loadedFilePath));
+                filesOperations.moveFileAtomicallyWithRetry(loadingFile, loadedFilePath);
                 log.info("Successfully processed and moved to: {}", loadedFilePath);
             }
         } catch (Exception e) {
-            log.error("Failed to process file after {} attempts: {}",
-                    properties.getRetryAttempts(), sourceFile, e);
+            log.error("Failed to process file: {}", sourceFile, e);
         }
     }
 

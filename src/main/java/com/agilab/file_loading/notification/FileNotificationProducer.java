@@ -18,20 +18,12 @@ public class FileNotificationProducer {
 
     // Return boolean to indicate success or failure
     public boolean sendFileNotification(FileLoadedEvent event) {
-        return resolveBindingAndSend(event)
-                .map(binding -> {
-                    log.info("File notification sent to binding {}: {}", binding, event.loadedFilePath());
-                    return true;
-                })
-                .orElseGet(() -> {
-                    log.error("Failed to resolve binding for directory: {}", event.baseDirectory());
-                    return false;
-                });
+        return resolveBindingAndSend(event);
     }
 
-    private Optional<String> resolveBindingAndSend(FileLoadedEvent event) {
-        return Optional.ofNullable(fileLoaderProperties.getSourceDirectories().get(event.baseDirectory()))
-                .filter(binding -> sendToBinding(binding, event));
+    private boolean resolveBindingAndSend(FileLoadedEvent event) {
+        var binding = Optional.ofNullable(fileLoaderProperties.getSourceDirectories().get(event.baseDirectory()));
+        return binding.filter(bin -> sendToBinding(bin, event)).isPresent();
     }
 
     private boolean sendToBinding(String binding, FileLoadedEvent event) {

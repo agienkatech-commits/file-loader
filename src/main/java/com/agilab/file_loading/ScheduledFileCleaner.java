@@ -3,6 +3,7 @@ package com.agilab.file_loading;
 import com.agilab.file_loading.config.FileLoaderProperties;
 import com.agilab.file_loading.event.FileLoadedEvent;
 import com.agilab.file_loading.notification.FileNotificationProducer;
+import com.agilab.file_loading.util.FilesOperations;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.retry.support.RetryTemplate;
@@ -16,7 +17,7 @@ import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.Map;
 
-import static com.agilab.file_loading.util.FilesHelper.moveFileAtomically;
+import static com.agilab.file_loading.util.FilesOperations.moveFileAtomically;
 import static org.apache.commons.io.FilenameUtils.getBaseName;
 
 @Service
@@ -26,11 +27,11 @@ public class ScheduledFileCleaner {
 
     private final FileLoaderProperties properties;
     private final FileNotificationProducer notificationProducer;
-    private final RetryTemplate retryTemplate;
+    private final FilesOperations filesOperations;
 
     @Scheduled(fixedRateString = "#{@fileLoaderProperties.cleaningInterval.toMillis()}")
     public void cleanProcessedFiles() {
-        properties.getSourceDirectories().keySet()
+        properties.getSourceDirectories().keySet().parallelStream()
                 .forEach(this::cleanLoadingDirectory);
     }
 
@@ -66,7 +67,7 @@ public class ScheduledFileCleaner {
         var fileLoadedEvent = new FileLoadedEvent(file.toString(), loadedFile.toString(), baseDirectory, Instant.now(), fineName, Map.of());
         var notificationSent = notificationProducer.sendFileNotification(fileLoadedEvent);
         if (notificationSent) {
-            retryTemplate.execute(context -> moveFileAtomically(file, loadedFile));
+            filesOperations.moveFileAtomicallyWithRetry(file, loadedFile);
             log.info("A file notification resent successfully: {}", loadedFile);
         }
     }

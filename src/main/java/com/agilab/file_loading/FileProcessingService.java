@@ -6,7 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import static com.agilab.file_loading.util.FilesHelper.findNewFiles;
+import static com.agilab.file_loading.util.FilesOperations.findNewFiles;
 
 @Service
 @Slf4j
