@@ -5,8 +5,8 @@ import com.agilab.file_loading.event.FileLoadedEvent;
 import com.agilab.file_loading.notification.FileNotificationProducer;
 import com.agilab.file_loading.util.FilesOperations;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.retry.support.RetryTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -17,7 +17,6 @@ import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.Map;
 
-import static com.agilab.file_loading.util.FilesOperations.moveFileAtomically;
 import static org.apache.commons.io.FilenameUtils.getBaseName;
 
 @Service
@@ -30,7 +29,7 @@ public class ScheduledFileCleaner {
     private final FilesOperations filesOperations;
 
     @Scheduled(fixedRateString = "#{@fileLoaderProperties.cleaningInterval.toMillis()}")
-    public void cleanProcessedFiles() {
+    public void cleanStickFiles() {
         properties.getSourceDirectories().keySet().parallelStream()
                 .forEach(this::cleanLoadingDirectory);
     }
@@ -39,6 +38,11 @@ public class ScheduledFileCleaner {
         try {
             var loadingDir = Paths.get(baseDirectory, properties.getLoadingSubdirectory());
             var loadedDir = Paths.get(baseDirectory, properties.getLoadedSubdirectory());
+
+            if (!Files.exists(loadingDir)) {
+                log.debug("Loading dir does not exist: {}", loadingDir);
+                return;
+            }
 
             Files.list(loadingDir)
                     .filter(Files::isRegularFile)
@@ -60,10 +64,12 @@ public class ScheduledFileCleaner {
         }
     }
 
+    @SneakyThrows
     private void sendNotificationAndMoveToLoaded(Path file, Path loadedDir, String baseDirectory) {
         log.warn("The file {} was not processed normally. Cleaning process is about to resend the notification.", file);
         var fineName = getBaseName(file.toString());
         var loadedFile = loadedDir.resolve(fineName);
+        Files.createDirectories(loadedDir);
         var fileLoadedEvent = new FileLoadedEvent(file.toString(), loadedFile.toString(), baseDirectory, Instant.now(), fineName, Map.of());
         var notificationSent = notificationProducer.sendFileNotification(fileLoadedEvent);
         if (notificationSent) {
