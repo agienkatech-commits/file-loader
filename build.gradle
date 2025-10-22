@@ -30,6 +30,7 @@ dependencies {
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.cloud:spring-cloud-stream-test-binder'
+	testImplementation 'org.springframework.cloud:spring-cloud-stream-binder-kafka'
 	testImplementation 'org.springframework.kafka:spring-kafka-test'
 	testImplementation 'com.fasterxml.jackson.core:jackson-databind'
 	testImplementation 'org.assertj:assertj-core:3.26.3'

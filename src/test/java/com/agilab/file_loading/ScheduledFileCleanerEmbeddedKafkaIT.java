@@ -42,7 +42,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Tests that stuck files in loading directory are detected, moved to loaded directory,
  * and FileLoadedEvent is sent to Kafka topic.
  */
-@SpringBootTest(classes = FileLoadingApplication.class)
+@SpringBootTest(classes = FileLoadingApplication.class, properties = {
+    "spring.cloud.stream.kafka.binder.brokers=${spring.embedded.kafka.brokers}"
+})
 @EmbeddedKafka(partitions = 1, topics = {"test-cleaner-topic"})
 @TestPropertySource(properties = {
         "spring.cloud.stream.bindings.cleanerNotification-out-0.destination=test-cleaner-topic",
