@@ -28,6 +28,7 @@ dependencies {
 	implementation 'org.springframework.kafka:spring-kafka'
 	
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-data-elasticsearch'
 	testImplementation 'org.springframework.cloud:spring-cloud-stream-test-binder'
 	testImplementation 'org.springframework.kafka:spring-kafka-test'
 	testImplementation 'org.assertj:assertj-core:3.26.3'
