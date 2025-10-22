@@ -8,9 +8,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
+import com.agilab.file_loading.util.FilesOperations;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.retry.support.RetryTemplate;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -28,7 +28,7 @@ class FileProcessorTest {
     private FileNotificationProducer notificationProducer;
 
     @Mock
-    private RetryTemplate retryTemplate;
+    private FilesOperations filesOperations;
 
     private FileLoaderProperties properties;
     private FileProcessor fileProcessor;
@@ -44,7 +44,7 @@ class FileProcessorTest {
         properties.setLoadedSubdirectory("loaded");
         properties.setRetryAttempts(3);
         properties.setRetryDelay(Duration.ofMillis(100));
-        fileProcessor = new FileProcessor(notificationProducer, retryTemplate, properties);
+        fileProcessor = new FileProcessor(notificationProducer, filesOperations, properties);
     }
 
     @Test
@@ -59,16 +59,13 @@ class FileProcessorTest {
         Files.write(sourceFile, "test content".getBytes());
         
         when(notificationProducer.sendFileNotification(any())).thenReturn(true);
-        when(retryTemplate.execute(any())).thenAnswer(invocation -> {
-            return invocation.getArgument(0, org.springframework.retry.RetryCallback.class).doWithRetry(null);
-        });
 
         // When
         fileProcessor.processFile(sourceFile, baseDir.toString());
 
         // Then
         verify(notificationProducer, times(1)).sendFileNotification(any(FileLoadedEvent.class));
-        verify(retryTemplate, times(2)).execute(any()); // once for loading, once for loaded
+        verify(filesOperations, times(2)).moveFileAtomicallyWithRetry(any(Path.class), any(Path.class)); // once for loading, once for loaded
     }
 
     @Test
@@ -83,16 +80,13 @@ class FileProcessorTest {
         Files.write(sourceFile, "test content".getBytes());
         
         when(notificationProducer.sendFileNotification(any())).thenReturn(false);
-        when(retryTemplate.execute(any())).thenAnswer(invocation -> {
-            return invocation.getArgument(0, org.springframework.retry.RetryCallback.class).doWithRetry(null);
-        });
 
         // When
         fileProcessor.processFile(sourceFile, baseDir.toString());
 
         // Then
         verify(notificationProducer, times(1)).sendFileNotification(any(FileLoadedEvent.class));
-        verify(retryTemplate, times(1)).execute(any()); // only once for loading, not for loaded
+        verify(filesOperations, times(1)).moveFileAtomicallyWithRetry(any(Path.class), any(Path.class)); // only once for loading, not for loaded
     }
 
     @Test
@@ -108,9 +102,6 @@ class FileProcessorTest {
         
         ArgumentCaptor<FileLoadedEvent> eventCaptor = ArgumentCaptor.forClass(FileLoadedEvent.class);
         when(notificationProducer.sendFileNotification(eventCaptor.capture())).thenReturn(true);
-        when(retryTemplate.execute(any())).thenAnswer(invocation -> {
-            return invocation.getArgument(0, org.springframework.retry.RetryCallback.class).doWithRetry(null);
-        });
 
         // When
         fileProcessor.processFile(sourceFile, baseDir.toString());
@@ -133,13 +124,14 @@ class FileProcessorTest {
         Path sourceFile = Files.createFile(baseDir.resolve("new/test.txt"));
         Files.write(sourceFile, "test content".getBytes());
         
-        when(retryTemplate.execute(any())).thenThrow(new IOException("Test exception"));
+        doThrow(new RuntimeException("Test exception"))
+            .when(filesOperations).moveFileAtomicallyWithRetry(any(Path.class), any(Path.class));
 
         // When - should not throw exception
         fileProcessor.processFile(sourceFile, baseDir.toString());
 
         // Then
-        verify(retryTemplate, times(1)).execute(any());
+        verify(filesOperations, times(1)).moveFileAtomicallyWithRetry(any(Path.class), any(Path.class));
         verify(notificationProducer, never()).sendFileNotification(any());
     }
 }
