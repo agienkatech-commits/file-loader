@@ -1,7 +1,6 @@
 package com.agilab.file_loading.integration;
 
 import com.agilab.file_loading.config.FileLoaderProperties;
-import com.agilab.file_loading.event.FileLoadedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
