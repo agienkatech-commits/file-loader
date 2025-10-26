@@ -20,7 +20,7 @@ import java.util.stream.Stream;
 @Slf4j
 @RequiredArgsConstructor
 @Component
-public class FilesOperations {
+public class FileOperations {
 
     private final RetryTemplate retryTemplate;
     private final FileLoaderProperties properties;
@@ -29,8 +29,8 @@ public class FilesOperations {
         try (Stream<Path> files = Files.list(newDirectory)) {
             return files
                     .filter(Files::isRegularFile)
-                    .filter(FilesOperations::isFileStable) // Check if file is fully written
-                    .filter(FilesOperations::isNotTemporaryFile)
+                    .filter(FileOperations::isFileStable) // Check if file is fully written
+                    .filter(FileOperations::isNotTemporaryFile)
                     .sorted(Comparator.comparing(path -> {
                         try {
                             return Files.getLastModifiedTime(path);

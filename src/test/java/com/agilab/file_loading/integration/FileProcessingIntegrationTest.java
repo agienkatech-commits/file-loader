@@ -59,9 +59,9 @@ class FileProcessingIntegrationTest {
     @BeforeEach
     void setUp() throws IOException {
         baseDir = tempDir.resolve("test-dir");
-        newDir = baseDir.resolve("new");
+        newDir = baseDir.resolve("flow1/new");
         loadingDir = baseDir.resolve("loading");
-        loadedDir = baseDir.resolve("loaded");
+        loadedDir = baseDir.resolve("flow1/loaded");
         
         Files.createDirectories(newDir);
         Files.createDirectories(loadingDir);

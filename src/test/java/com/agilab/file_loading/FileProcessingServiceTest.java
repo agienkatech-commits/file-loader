@@ -34,12 +34,12 @@ class FileProcessingServiceTest {
     @BeforeEach
     void setUp() {
         properties = new FileLoaderProperties();
-        properties.setNewSubdirectory("new");
+        properties.setNewSubdirectory("flow1/new");
         properties.setLoadingSubdirectory("loading");
-        properties.setLoadedSubdirectory("loaded");
+        properties.setLoadedSubdirectory("flow1/loaded");
         properties.setRetryAttempts(3);
         properties.setRetryDelay(Duration.ofMillis(100));
-        service = new FileProcessingService(properties, fileProcessor);
+        service = new FileProcessingService(properties, fileProcessor, 10);
     }
 
     @Test
@@ -47,11 +47,11 @@ class FileProcessingServiceTest {
         // Given
         Path dir1 = tempDir.resolve("dir1");
         Path dir2 = tempDir.resolve("dir2");
-        Files.createDirectories(dir1.resolve("new"));
-        Files.createDirectories(dir2.resolve("new"));
+        Files.createDirectories(dir1.resolve("flow1/new"));
+        Files.createDirectories(dir2.resolve("flow1/new"));
         
-        Path file1 = Files.createFile(dir1.resolve("new/file1.txt"));
-        Path file2 = Files.createFile(dir2.resolve("new/file2.txt"));
+        Path file1 = Files.createFile(dir1.resolve("flow1/new/file1.txt"));
+        Path file2 = Files.createFile(dir2.resolve("flow1/new/file2.txt"));
         Files.write(file1, "content1".getBytes());
         Files.write(file2, "content2".getBytes());
         
@@ -75,8 +75,8 @@ class FileProcessingServiceTest {
     void processNewFiles_shouldHandleExceptions() throws IOException, InterruptedException {
         // Given
         Path dir1 = tempDir.resolve("dir1");
-        Files.createDirectories(dir1.resolve("new"));
-        Path file1 = Files.createFile(dir1.resolve("new/file1.txt"));
+        Files.createDirectories(dir1.resolve("flow1/new"));
+        Path file1 = Files.createFile(dir1.resolve("flow1/new/file1.txt"));
         Files.write(file1, "content".getBytes());
         
         Map<String, String> dirs = new HashMap<>();

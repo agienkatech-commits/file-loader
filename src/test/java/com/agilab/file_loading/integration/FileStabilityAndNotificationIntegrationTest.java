@@ -65,18 +65,18 @@ class FileStabilityAndNotificationIntegrationTest {
     @BeforeEach
     void setUp() throws IOException {
         baseDir1 = tempDir.resolve("test-dir1");
-        newDir1 = baseDir1.resolve("new");
+        newDir1 = baseDir1.resolve("flow1/new");
         Path loadingDir1 = baseDir1.resolve("loading");
-        loadedDir1 = baseDir1.resolve("loaded");
+        loadedDir1 = baseDir1.resolve("flow1/loaded");
         
         Files.createDirectories(newDir1);
         Files.createDirectories(loadingDir1);
         Files.createDirectories(loadedDir1);
         
         baseDir2 = tempDir.resolve("test-dir2");
-        newDir2 = baseDir2.resolve("new");
+        newDir2 = baseDir2.resolve("flow1/new");
         Path loadingDir2 = baseDir2.resolve("loading");
-        loadedDir2 = baseDir2.resolve("loaded");
+        loadedDir2 = baseDir2.resolve("flow1/loaded");
         
         Files.createDirectories(newDir2);
         Files.createDirectories(loadingDir2);

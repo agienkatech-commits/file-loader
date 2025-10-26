@@ -3,6 +3,7 @@ package com.agilab.file_loading;
 import com.agilab.file_loading.config.FileLoaderProperties;
 import com.agilab.file_loading.event.FileLoadedEvent;
 import com.agilab.file_loading.notification.FileNotificationProducer;
+import com.agilab.file_loading.util.FileOperations;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,7 +11,6 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.retry.support.RetryTemplate;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -28,7 +28,7 @@ class FileProcessorTest {
     private FileNotificationProducer notificationProducer;
 
     @Mock
-    private RetryTemplate retryTemplate;
+    private FileOperations fileOperations;
 
     private FileLoaderProperties properties;
     private FileProcessor fileProcessor;
@@ -39,107 +39,108 @@ class FileProcessorTest {
     @BeforeEach
     void setUp() {
         properties = new FileLoaderProperties();
-        properties.setNewSubdirectory("new");
+        properties.setNewSubdirectory("flow1/new");
         properties.setLoadingSubdirectory("loading");
-        properties.setLoadedSubdirectory("loaded");
+        properties.setLoadedSubdirectory("flow1/loaded");
         properties.setRetryAttempts(3);
         properties.setRetryDelay(Duration.ofMillis(100));
-        fileProcessor = new FileProcessor(notificationProducer, retryTemplate, properties);
+        fileProcessor = new FileProcessor(notificationProducer, fileOperations, properties);
     }
 
     @Test
-    void processFile_shouldMoveFileAndSendNotification() throws Exception {
-        // Given
-        Path baseDir = tempDir.resolve("base");
-        Files.createDirectories(baseDir.resolve("new"));
-        Files.createDirectories(baseDir.resolve("loading"));
-        Files.createDirectories(baseDir.resolve("loaded"));
-        
-        Path sourceFile = Files.createFile(baseDir.resolve("new/test.txt"));
-        Files.write(sourceFile, "test content".getBytes());
-        
-        when(notificationProducer.sendFileNotification(any())).thenReturn(true);
-        when(retryTemplate.execute(any())).thenAnswer(invocation -> {
-            return invocation.getArgument(0, org.springframework.retry.RetryCallback.class).doWithRetry(null);
-        });
+    void testProcessFileSuccessfully() throws IOException {
+        // Arrange
+        Path sourceFile = tempDir.resolve("test.txt");
+        Files.createFile(sourceFile);
+        when(notificationProducer.sendFileNotification(any(FileLoadedEvent.class))).thenReturn(true);
 
-        // When
-        fileProcessor.processFile(sourceFile, baseDir.toString());
+        // Act
+        fileProcessor.processFile(sourceFile, tempDir.toString());
 
-        // Then
+        // Assert
+        verify(fileOperations, times(2)).moveFileAtomicallyWithRetry(any(Path.class), any(Path.class));
         verify(notificationProducer, times(1)).sendFileNotification(any(FileLoadedEvent.class));
-        verify(retryTemplate, times(2)).execute(any()); // once for loading, once for loaded
     }
 
     @Test
-    void processFile_shouldNotMoveToLoadedIfNotificationFails() throws Exception {
-        // Given
-        Path baseDir = tempDir.resolve("base");
-        Files.createDirectories(baseDir.resolve("new"));
-        Files.createDirectories(baseDir.resolve("loading"));
-        Files.createDirectories(baseDir.resolve("loaded"));
-        
-        Path sourceFile = Files.createFile(baseDir.resolve("new/test.txt"));
-        Files.write(sourceFile, "test content".getBytes());
-        
-        when(notificationProducer.sendFileNotification(any())).thenReturn(false);
-        when(retryTemplate.execute(any())).thenAnswer(invocation -> {
-            return invocation.getArgument(0, org.springframework.retry.RetryCallback.class).doWithRetry(null);
-        });
+    void testProcessFileWhenNotificationFails() throws IOException {
+        // Arrange
+        Path sourceFile = tempDir.resolve("test.txt");
+        Files.createFile(sourceFile);
+        when(notificationProducer.sendFileNotification(any(FileLoadedEvent.class))).thenReturn(false);
 
-        // When
-        fileProcessor.processFile(sourceFile, baseDir.toString());
+        // Act
+        fileProcessor.processFile(sourceFile, tempDir.toString());
 
-        // Then
+        // Assert
+        verify(fileOperations, times(1)).moveFileAtomicallyWithRetry(any(Path.class), any(Path.class));
         verify(notificationProducer, times(1)).sendFileNotification(any(FileLoadedEvent.class));
-        verify(retryTemplate, times(1)).execute(any()); // only once for loading, not for loaded
     }
 
     @Test
-    void processFile_shouldCreateEventWithCorrectData() throws Exception {
-        // Given
-        Path baseDir = tempDir.resolve("base");
-        Files.createDirectories(baseDir.resolve("new"));
-        Files.createDirectories(baseDir.resolve("loading"));
-        Files.createDirectories(baseDir.resolve("loaded"));
-        
-        Path sourceFile = Files.createFile(baseDir.resolve("new/original.txt"));
-        Files.write(sourceFile, "test content".getBytes());
-        
+    void testProcessFileCreatesLoadedEventWithCorrectData() throws IOException {
+        // Arrange
+        Path sourceFile = tempDir.resolve("document.pdf");
+        Files.createFile(sourceFile);
         ArgumentCaptor<FileLoadedEvent> eventCaptor = ArgumentCaptor.forClass(FileLoadedEvent.class);
-        when(notificationProducer.sendFileNotification(eventCaptor.capture())).thenReturn(true);
-        when(retryTemplate.execute(any())).thenAnswer(invocation -> {
-            return invocation.getArgument(0, org.springframework.retry.RetryCallback.class).doWithRetry(null);
-        });
+        when(notificationProducer.sendFileNotification(any(FileLoadedEvent.class))).thenReturn(true);
 
-        // When
-        fileProcessor.processFile(sourceFile, baseDir.toString());
+        // Act
+        fileProcessor.processFile(sourceFile, tempDir.toString());
 
-        // Then
-        FileLoadedEvent event = eventCaptor.getValue();
-        assertThat(event.originalFilePath()).isEqualTo(sourceFile.toString());
-        assertThat(event.baseDirectory()).isEqualTo(baseDir.toString());
-        assertThat(event.fileName()).startsWith("original-");
-        assertThat(event.fileName()).endsWith(".txt");
+        // Assert
+        verify(notificationProducer).sendFileNotification(eventCaptor.capture());
+        FileLoadedEvent capturedEvent = eventCaptor.getValue();
+        assertThat(capturedEvent.originalFilePath()).contains("document.pdf");
+        assertThat(capturedEvent.baseDirectory()).isEqualTo(tempDir.toString());
     }
 
     @Test
-    void processFile_shouldHandleExceptions() throws Exception {
-        // Given
-        Path baseDir = tempDir.resolve("base");
-        Files.createDirectories(baseDir.resolve("new"));
-        Files.createDirectories(baseDir.resolve("loading"));
-        
-        Path sourceFile = Files.createFile(baseDir.resolve("new/test.txt"));
-        Files.write(sourceFile, "test content".getBytes());
-        
-        when(retryTemplate.execute(any())).thenThrow(new IOException("Test exception"));
+    void testProcessFileHandlesException() {
+        // Arrange
+        Path sourceFile = tempDir.resolve("test.txt");
+        doThrow(new RuntimeException("Move failed")).when(fileOperations)
+                .moveFileAtomicallyWithRetry(any(Path.class), any(Path.class));
 
-        // When - should not throw exception
-        fileProcessor.processFile(sourceFile, baseDir.toString());
+        // Act & Assert - should not throw exception
+        fileProcessor.processFile(sourceFile, tempDir.toString());
 
-        // Then
-        verify(retryTemplate, times(1)).execute(any());
         verify(notificationProducer, never()).sendFileNotification(any());
     }
+
+    @Test
+    void testProcessFileGeneratesNewFileNameWithTimestamp() throws IOException {
+        // Arrange
+        Path sourceFile = tempDir.resolve("data.csv");
+        Files.createFile(sourceFile);
+        ArgumentCaptor<FileLoadedEvent> eventCaptor = ArgumentCaptor.forClass(FileLoadedEvent.class);
+        when(notificationProducer.sendFileNotification(any(FileLoadedEvent.class))).thenReturn(true);
+
+        // Act
+        fileProcessor.processFile(sourceFile, tempDir.toString());
+
+        // Assert
+        verify(notificationProducer).sendFileNotification(eventCaptor.capture());
+        FileLoadedEvent capturedEvent = eventCaptor.getValue();
+        assertThat(capturedEvent.fileName()).startsWith("data-").endsWith(".csv");
+        assertThat(capturedEvent.fileName()).doesNotContain(":");
+    }
+
+    @Test
+    void testProcessFileMovesToLoadingDirectoryFirst() throws IOException {
+        // Arrange
+        Path sourceFile = tempDir.resolve("test.txt");
+        Files.createFile(sourceFile);
+        ArgumentCaptor<Path> pathCaptor = ArgumentCaptor.forClass(Path.class);
+        when(notificationProducer.sendFileNotification(any(FileLoadedEvent.class))).thenReturn(true);
+
+        // Act
+        fileProcessor.processFile(sourceFile, tempDir.toString());
+
+        // Assert
+        verify(fileOperations, times(2)).moveFileAtomicallyWithRetry(any(Path.class), pathCaptor.capture());
+        Path firstMoveDest = pathCaptor.getAllValues().get(0);
+        assertThat(firstMoveDest.toString()).contains("loading");
+    }
+
 }

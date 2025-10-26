@@ -3,11 +3,10 @@ package com.agilab.file_loading;
 import com.agilab.file_loading.config.FileLoaderProperties;
 import com.agilab.file_loading.event.FileLoadedEvent;
 import com.agilab.file_loading.notification.FileNotificationProducer;
-import com.agilab.file_loading.util.FilesOperations;
+import com.agilab.file_loading.util.FileOperations;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -22,13 +21,14 @@ import static org.apache.commons.io.FilenameUtils.getBaseName;
 @Service
 @Slf4j
 @RequiredArgsConstructor
+
 public class ScheduledFileCleaner {
 
     private final FileLoaderProperties properties;
     private final FileNotificationProducer notificationProducer;
-    private final FilesOperations filesOperations;
+    private final FileOperations fileOperations;
 
-    @Scheduled(fixedRateString = "#{@fileLoaderProperties.cleaningInterval.toMillis()}")
+//    @Scheduled(fixedRateString = "#{@fileLoaderProperties.cleaningInterval.toMillis()}")
     public void cleanStickFiles() {
         properties.getSourceDirectories().keySet().parallelStream()
                 .forEach(this::cleanLoadingDirectory);
@@ -73,7 +73,7 @@ public class ScheduledFileCleaner {
         var fileLoadedEvent = new FileLoadedEvent(file.toString(), loadedFile.toString(), baseDirectory, Instant.now(), fineName, Map.of());
         var notificationSent = notificationProducer.sendFileNotification(fileLoadedEvent);
         if (notificationSent) {
-            filesOperations.moveFileAtomicallyWithRetry(file, loadedFile);
+            fileOperations.moveFileAtomicallyWithRetry(file, loadedFile);
             log.info("A file notification resent successfully: {}", loadedFile);
         }
     }

@@ -4,7 +4,7 @@ package com.agilab.file_loading.integration;
 import com.agilab.file_loading.ScheduledFilePoller;
 import com.agilab.file_loading.config.FileLoaderProperties;
 import com.agilab.file_loading.event.FileLoadedEvent;
-import com.agilab.file_loading.util.FilesOperations;
+import com.agilab.file_loading.util.FileOperations;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -20,7 +20,6 @@ import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.test.EmbeddedKafkaBroker;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.io.IOException;
@@ -56,7 +55,7 @@ class ScheduledFilePollerIntegrationTest {
     private EmbeddedKafkaBroker embeddedKafkaBroker;
 
     @MockitoSpyBean
-    private FilesOperations filesOperations;
+    private FileOperations fileOperations;
 
     private Consumer<String, String> consumer;
     private ObjectMapper objectMapper;
@@ -234,7 +233,7 @@ class ScheduledFilePollerIntegrationTest {
         // Mock exception on first file operation, then proceed normally
         doThrow(new IOException("Simulated IO error"))
                 .doCallRealMethod()
-                .when(filesOperations).moveFileAtomicallyWithRetry(any(Path.class), any(Path.class));
+                .when(fileOperations).moveFileAtomicallyWithRetry(any(Path.class), any(Path.class));
 
         // When: Trigger polling (first file should fail, second should succeed)
         scheduledFilePoller.pollBlobContainers();

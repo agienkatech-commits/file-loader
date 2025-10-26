@@ -9,12 +9,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.cloud.stream.binder.test.OutputDestination;
 import org.springframework.cloud.stream.binder.test.TestChannelBinderConfiguration;
 import org.springframework.context.annotation.Import;
 import org.springframework.messaging.Message;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -48,7 +48,7 @@ class FileRetryAndErrorHandlingIntegrationTest {
     @Autowired
     private OutputDestination outputDestination;
 
-    @SpyBean
+    @MockitoSpyBean
     private FileNotificationProducer notificationProducer;
 
     @Autowired
@@ -71,9 +71,9 @@ class FileRetryAndErrorHandlingIntegrationTest {
     @BeforeEach
     void setUp() throws IOException {
         baseDir = tempDir.resolve("test-dir");
-        newDir = baseDir.resolve("new");
+        newDir = baseDir.resolve("flow1/new");
         loadingDir = baseDir.resolve("loading");
-        loadedDir = baseDir.resolve("loaded");
+        loadedDir = baseDir.resolve("flow1/loaded");
         
         Files.createDirectories(newDir);
         Files.createDirectories(loadingDir);
