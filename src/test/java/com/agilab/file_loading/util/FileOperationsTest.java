@@ -32,7 +32,7 @@ class FileOperationsTest {
         Path file2 = Files.createFile(testDir.resolve("file2.txt"));
         Files.write(file1, "content".getBytes());
         Files.write(file2, "content".getBytes());
-        
+
         // Wait for files to be stable
         Thread.sleep(1100);
 
@@ -51,12 +51,12 @@ class FileOperationsTest {
         Path dotFile = Files.createFile(testDir.resolve(".hidden"));
         Path tildeFile = Files.createFile(testDir.resolve("~backup"));
         Path tmpFile = Files.createFile(testDir.resolve("temp.tmp"));
-        
+
         Files.write(normalFile, "content".getBytes());
         Files.write(dotFile, "content".getBytes());
         Files.write(tildeFile, "content".getBytes());
         Files.write(tmpFile, "content".getBytes());
-        
+
         // Wait for files to be stable
         Thread.sleep(1100);
 
@@ -74,7 +74,7 @@ class FileOperationsTest {
         Path emptyFile = Files.createFile(testDir.resolve("empty.txt"));
         Path nonEmptyFile = Files.createFile(testDir.resolve("nonempty.txt"));
         Files.write(nonEmptyFile, "content".getBytes());
-        
+
         // Wait for files to be stable
         Thread.sleep(1100);
 

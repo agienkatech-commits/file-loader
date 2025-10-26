@@ -57,7 +57,7 @@ class FileStabilityAndNotificationIntegrationTest {
     private Path baseDir1;
     private Path newDir1;
     private Path loadedDir1;
-    
+
     private Path baseDir2;
     private Path newDir2;
     private Path loadedDir2;
@@ -68,26 +68,26 @@ class FileStabilityAndNotificationIntegrationTest {
         newDir1 = baseDir1.resolve("flow1/new");
         Path loadingDir1 = baseDir1.resolve("loading");
         loadedDir1 = baseDir1.resolve("flow1/loaded");
-        
+
         Files.createDirectories(newDir1);
         Files.createDirectories(loadingDir1);
         Files.createDirectories(loadedDir1);
-        
+
         baseDir2 = tempDir.resolve("test-dir2");
         newDir2 = baseDir2.resolve("flow1/new");
         Path loadingDir2 = baseDir2.resolve("loading");
         loadedDir2 = baseDir2.resolve("flow1/loaded");
-        
+
         Files.createDirectories(newDir2);
         Files.createDirectories(loadingDir2);
         Files.createDirectories(loadedDir2);
-        
+
         // Configure the test directories dynamically
         Map<String, String> sourceDirectories = new HashMap<>();
         sourceDirectories.put(baseDir1.toString(), "fileNotification1-out-0");
         sourceDirectories.put(baseDir2.toString(), "fileNotification2-out-0");
         properties.setSourceDirectories(sourceDirectories);
-        
+
         // Clear any previous messages
         while (outputDestination.receive(10, "test-topic1") != null) {
             // drain
@@ -101,11 +101,11 @@ class FileStabilityAndNotificationIntegrationTest {
     void shouldVerifyFileStabilityCheckExists() throws IOException {
         // This test verifies that the file stability check is part of the file discovery process
         // The actual stability check logic is tested in FilesHelperTest unit tests
-        
+
         // Given - create a stable file
         Path stableFile = Files.createFile(newDir1.resolve("stable.txt"));
         Files.write(stableFile, "stable content".getBytes());
-        
+
         // When/Then - verify FilesHelper has findNewFiles method that includes stability check
         // This is verified by the fact that FilesHelper.findNewFiles is used in the actual code
         assertThat(stableFile).exists();
@@ -116,10 +116,10 @@ class FileStabilityAndNotificationIntegrationTest {
         // Given - create files in both directories
         Path file1 = Files.createFile(newDir1.resolve("file1.txt"));
         Files.write(file1, "content1".getBytes());
-        
+
         Path file2 = Files.createFile(newDir2.resolve("file2.txt"));
         Files.write(file2, "content2".getBytes());
-        
+
         // Wait for files to be stable
         Thread.sleep(1100);
 
@@ -131,11 +131,11 @@ class FileStabilityAndNotificationIntegrationTest {
             assertThat(Files.list(loadedDir1).count()).isEqualTo(1);
             assertThat(Files.list(loadedDir2).count()).isEqualTo(1);
         });
-        
+
         // Verify notifications sent to correct topics
         Message<?> message1 = outputDestination.receive(1000, "test-topic1");
         Message<?> message2 = outputDestination.receive(1000, "test-topic2");
-        
+
         assertThat(message1).isNotNull();
         assertThat(message2).isNotNull();
         assertThat(message1.getPayload()).isNotNull();
@@ -147,7 +147,7 @@ class FileStabilityAndNotificationIntegrationTest {
         // Given - create multiple files with same name in sequence
         Path file1 = Files.createFile(newDir1.resolve("same-name.txt"));
         Files.write(file1, "content1".getBytes());
-        
+
         // Wait for file to be stable
         Thread.sleep(1100);
 
@@ -158,22 +158,22 @@ class FileStabilityAndNotificationIntegrationTest {
         await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
             assertThat(Files.list(loadedDir1).count()).isEqualTo(1);
         });
-        
+
         // Get the loaded file name
         String loadedFileName1 = Files.list(loadedDir1).findFirst().get().getFileName().toString();
-        
+
         // Create second file with same name
         Path file2 = Files.createFile(newDir1.resolve("same-name.txt"));
         Files.write(file2, "content2".getBytes());
         Thread.sleep(1100);
-        
+
         // Process second file
         fileProcessingService.processNewFiles();
-        
+
         await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
             assertThat(Files.list(loadedDir1).count()).isEqualTo(2);
         });
-        
+
         // Get the second loaded file name
         List<Path> loadedFiles = Files.list(loadedDir1).toList();
         String loadedFileName2 = loadedFiles.stream()
@@ -187,7 +187,7 @@ class FileStabilityAndNotificationIntegrationTest {
         assertThat(loadedFileName2).startsWith("same-name-");
         assertThat(loadedFileName2).endsWith(".txt");
         assertThat(loadedFileName1).isNotEqualTo(loadedFileName2);
-        
+
         // Verify 2 notifications sent
         Message<?> message1 = outputDestination.receive(1000, "test-topic1");
         Message<?> message2 = outputDestination.receive(1000, "test-topic1");

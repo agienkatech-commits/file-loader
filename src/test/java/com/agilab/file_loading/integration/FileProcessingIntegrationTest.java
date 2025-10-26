@@ -62,11 +62,11 @@ class FileProcessingIntegrationTest {
         newDir = baseDir.resolve("flow1/new");
         loadingDir = baseDir.resolve("loading");
         loadedDir = baseDir.resolve("flow1/loaded");
-        
+
         Files.createDirectories(newDir);
         Files.createDirectories(loadingDir);
         Files.createDirectories(loadedDir);
-        
+
         // Configure the test directory dynamically
         Map<String, String> sourceDirectories = new HashMap<>();
         sourceDirectories.put(baseDir.toString(), "fileNotification1-out-0");
@@ -78,7 +78,7 @@ class FileProcessingIntegrationTest {
         // Given - create a file in the new directory
         Path testFile = Files.createFile(newDir.resolve("test-file.txt"));
         Files.write(testFile, "test content for integration".getBytes());
-        
+
         // Wait for file to be stable
         Thread.sleep(1100);
 
@@ -89,7 +89,7 @@ class FileProcessingIntegrationTest {
         await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
             assertThat(Files.list(loadedDir).count()).isEqualTo(1);
         });
-        
+
         assertThat(Files.exists(testFile)).isFalse();
         assertThat(Files.exists(newDir.resolve("test-file.txt"))).isFalse();
         assertThat(Files.exists(loadingDir.resolve("test-file.txt"))).isFalse();
@@ -106,14 +106,14 @@ class FileProcessingIntegrationTest {
         Path file1 = Files.createFile(newDir.resolve("file1.txt"));
         Files.write(file1, "content1".getBytes());
         Thread.sleep(100);
-        
+
         Path file2 = Files.createFile(newDir.resolve("file2.txt"));
         Files.write(file2, "content2".getBytes());
         Thread.sleep(100);
-        
+
         Path file3 = Files.createFile(newDir.resolve("file3.txt"));
         Files.write(file3, "content3".getBytes());
-        
+
         // Wait for files to be stable
         Thread.sleep(1100);
 
@@ -124,12 +124,12 @@ class FileProcessingIntegrationTest {
         await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
             assertThat(Files.list(loadedDir).count()).isEqualTo(3);
         });
-        
+
         // Verify 3 notifications were sent
         Message<?> message1 = outputDestination.receive(1000, "test-topic1");
         Message<?> message2 = outputDestination.receive(1000, "test-topic1");
         Message<?> message3 = outputDestination.receive(1000, "test-topic1");
-        
+
         assertThat(message1).isNotNull();
         assertThat(message2).isNotNull();
         assertThat(message3).isNotNull();
@@ -140,14 +140,14 @@ class FileProcessingIntegrationTest {
         // Given - create various files including temp and empty
         Path normalFile = Files.createFile(newDir.resolve("normal.txt"));
         Files.write(normalFile, "content".getBytes());
-        
+
         Path emptyFile = Files.createFile(newDir.resolve("empty.txt"));
         Path dotFile = Files.createFile(newDir.resolve(".hidden"));
         Files.write(dotFile, "hidden".getBytes());
-        
+
         Path tmpFile = Files.createFile(newDir.resolve("temp.tmp"));
         Files.write(tmpFile, "temp".getBytes());
-        
+
         // Wait for files to be stable
         Thread.sleep(1100);
 
@@ -158,12 +158,12 @@ class FileProcessingIntegrationTest {
         await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
             assertThat(Files.list(loadedDir).count()).isEqualTo(1);
         });
-        
+
         // Verify only 1 notification was sent
         Message<?> message = outputDestination.receive(1000, "test-topic1");
         assertThat(message).isNotNull();
         assertThat(message.getPayload()).isNotNull();
-        
+
         // No more messages
         Message<?> noMessage = outputDestination.receive(100, "test-topic1");
         assertThat(noMessage).isNull();

@@ -4,6 +4,7 @@ package com.agilab.file_loading.integration;
 import com.agilab.file_loading.ScheduledFilePoller;
 import com.agilab.file_loading.config.FileLoaderProperties;
 import com.agilab.file_loading.event.FileLoadedEvent;
+import com.agilab.file_loading.notification.FileNotificationProducer;
 import com.agilab.file_loading.util.FileOperations;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -32,6 +33,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 
 @SpringBootTest
@@ -55,6 +57,9 @@ class ScheduledFilePollerIntegrationTest {
     private EmbeddedKafkaBroker embeddedKafkaBroker;
 
     @MockitoSpyBean
+    private FileNotificationProducer fileNotificationProducer;
+
+    @MockitoSpyBean
     private FileOperations fileOperations;
 
     private Consumer<String, String> consumer;
@@ -65,18 +70,15 @@ class ScheduledFilePollerIntegrationTest {
 
     private Path baseDir;
     private Path newDir;
-    private Path loadingDir;
     private Path loadedDir;
 
     @BeforeEach
     void setUp() throws IOException {
         baseDir = tempDir.resolve("test-base");
         newDir = baseDir.resolve(properties.getNewSubdirectory());
-        loadingDir = baseDir.resolve(properties.getLoadingSubdirectory());
         loadedDir = baseDir.resolve(properties.getLoadedSubdirectory());
 
         Files.createDirectories(newDir);
-        Files.createDirectories(loadingDir);
         Files.createDirectories(loadedDir);
 
         properties.setSourceDirectories(Map.of(baseDir.toString(), "fileNotification1-out-0"));
@@ -231,7 +233,7 @@ class ScheduledFilePollerIntegrationTest {
         Files.writeString(file2, "Content 2");
 
         // Mock exception on first file operation, then proceed normally
-        doThrow(new IOException("Simulated IO error"))
+        doThrow(new RuntimeException(new IOException("Simulated IO error")))
                 .doCallRealMethod()
                 .when(fileOperations).moveFileAtomicallyWithRetry(any(Path.class), any(Path.class));
 
@@ -282,5 +284,100 @@ class ScheduledFilePollerIntegrationTest {
         assertThat(event.timestamp()).isNotNull();
         assertThat(event.timestamp()).isBefore(java.time.Instant.now());
         assertThat(event.metadata()).isNotNull().isEmpty();
+    }
+
+    @Test
+    void pollBlobContainers_shouldMoveFileBackWhenNotificationFails() throws IOException {
+        // Given
+        var testFile = newDir.resolve("fail-notify.txt");
+        Files.writeString(testFile, "content causing notification failure");
+
+        doReturn(false).when(fileNotificationProducer).sendFileNotification(any(FileLoadedEvent.class));
+
+        // When
+        scheduledFilePoller.pollBlobContainers();
+
+        // Then
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
+            assertThat(Files.exists(testFile)).isTrue();
+            assertThat(Files.list(loadedDir).count()).isEqualTo(0);
+        });
+
+        var records = KafkaTestUtils.getRecords(consumer, Duration.ofMillis(500));
+        assertThat(records.isEmpty()).isTrue();
+    }
+
+    @Test
+    void pollBlobContainers_shouldContinueProcessingOtherFilesWhenNotificationFailsForOne() throws IOException {
+        var file1 = newDir.resolve("file1.txt");
+        var file2 = newDir.resolve("file2.txt");
+        Files.writeString(file1, "content1");
+        Files.writeString(file2, "content2");
+
+        doReturn(false).doCallRealMethod().when(fileNotificationProducer).sendFileNotification(any());
+
+        // When
+        scheduledFilePoller.pollBlobContainers();
+
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
+            assertThat(Files.exists(file1)).isTrue();
+            assertThat(Files.exists(file2)).isFalse();
+            assertThat(Files.list(loadedDir).count()).isEqualTo(1);
+        });
+
+        var records = KafkaTestUtils.getRecords(consumer, Duration.ofSeconds(5));
+        assertThat(records.count()).isEqualTo(1);
+
+        var event = objectMapper.readValue(records.iterator().next().value(), FileLoadedEvent.class);
+        assertThat(event.fileName()).startsWith("file2");
+    }
+
+    @Test
+    void pollBlobContainers_shouldMoveFileBackWhenNotificationThrowsException() throws IOException {
+        // Given
+        var testFile = newDir.resolve("exception-notify.txt");
+        Files.writeString(testFile, "content causing notification exception");
+
+        doThrow(new RuntimeException("Simulated sending error")).when(fileNotificationProducer).sendFileNotification(any(FileLoadedEvent.class));
+
+        // When
+        scheduledFilePoller.pollBlobContainers();
+
+        // Then
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
+            assertThat(Files.exists(testFile)).isTrue();
+            assertThat(Files.list(loadedDir).count()).isEqualTo(0);
+        });
+
+        var records = KafkaTestUtils.getRecords(consumer, Duration.ofMillis(500));
+        assertThat(records.isEmpty()).isTrue();
+    }
+
+    @Test
+    void pollBlobContainers_shouldContinueProcessingOtherFilesWhenNotificationThrowsForOne() throws IOException {
+        var file1 = newDir.resolve("file1.txt");
+        var file2 = newDir.resolve("file2.txt");
+        Files.writeString(file1, "content1");
+        Files.writeString(file2, "content2");
+
+        doThrow(new RuntimeException("Notification service failure"))
+                .doCallRealMethod()
+                .when(fileNotificationProducer).sendFileNotification(any());
+
+        // When
+        scheduledFilePoller.pollBlobContainers();
+
+        // Then
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
+            assertThat(Files.exists(file1)).isTrue();
+            assertThat(Files.exists(file2)).isFalse();
+            assertThat(Files.list(loadedDir).count()).isEqualTo(1);
+        });
+
+        var records = KafkaTestUtils.getRecords(consumer, Duration.ofSeconds(3));
+        assertThat(records.count()).isEqualTo(1);
+
+        var event = objectMapper.readValue(records.iterator().next().value(), FileLoadedEvent.class);
+        assertThat(event.baseDirectory()).isEqualTo(baseDir.toString());
     }
 }

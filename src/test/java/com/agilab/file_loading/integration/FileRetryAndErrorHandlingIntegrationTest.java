@@ -74,16 +74,16 @@ class FileRetryAndErrorHandlingIntegrationTest {
         newDir = baseDir.resolve("flow1/new");
         loadingDir = baseDir.resolve("loading");
         loadedDir = baseDir.resolve("flow1/loaded");
-        
+
         Files.createDirectories(newDir);
         Files.createDirectories(loadingDir);
         Files.createDirectories(loadedDir);
-        
+
         // Configure the test directory dynamically
         Map<String, String> sourceDirectories = new HashMap<>();
         sourceDirectories.put(baseDir.toString(), "fileNotification1-out-0");
         properties.setSourceDirectories(sourceDirectories);
-        
+
         // Clear any previous messages
         while (outputDestination.receive(10, "test-topic1") != null) {
             // drain
@@ -94,10 +94,10 @@ class FileRetryAndErrorHandlingIntegrationTest {
     void shouldNotMoveFileToLoadedWhenNotificationFails() throws IOException, InterruptedException {
         // Given - setup notification to fail
         doReturn(false).when(notificationProducer).sendFileNotification(any(FileLoadedEvent.class));
-        
+
         Path testFile = Files.createFile(newDir.resolve("test-file.txt"));
         Files.write(testFile, "test content".getBytes());
-        
+
         // Wait for file to be stable
         Thread.sleep(1100);
 
@@ -106,14 +106,14 @@ class FileRetryAndErrorHandlingIntegrationTest {
 
         // Then - file should be in loading directory, not loaded
         Thread.sleep(500); // Give time for processing
-        
+
         assertThat(Files.exists(testFile)).isFalse();
         assertThat(Files.list(loadingDir).count()).isEqualTo(1);
         assertThat(Files.list(loadedDir).count()).isEqualTo(0);
-        
+
         // Verify notification was attempted
         verify(notificationProducer, times(1)).sendFileNotification(any(FileLoadedEvent.class));
-        
+
         // No message should be in the queue
         Message<?> message = outputDestination.receive(100, "test-topic1");
         assertThat(message).isNull();
@@ -124,18 +124,18 @@ class FileRetryAndErrorHandlingIntegrationTest {
         // Given - setup notification to fail for first call, then succeed
         doReturn(false, true, true)
                 .when(notificationProducer).sendFileNotification(any(FileLoadedEvent.class));
-        
+
         Path file1 = Files.createFile(newDir.resolve("file1.txt"));
         Files.write(file1, "content1".getBytes());
         Thread.sleep(100);
-        
+
         Path file2 = Files.createFile(newDir.resolve("file2.txt"));
         Files.write(file2, "content2".getBytes());
         Thread.sleep(100);
-        
+
         Path file3 = Files.createFile(newDir.resolve("file3.txt"));
         Files.write(file3, "content3".getBytes());
-        
+
         // Wait for files to be stable
         Thread.sleep(1100);
 
@@ -150,7 +150,7 @@ class FileRetryAndErrorHandlingIntegrationTest {
             assertThat(loadingCount).isEqualTo(1);
             assertThat(loadedCount).isEqualTo(2);
         });
-        
+
         // Verify notification producer was called 3 times (1 failed, 2 succeeded)
         verify(notificationProducer, times(3)).sendFileNotification(any(FileLoadedEvent.class));
     }

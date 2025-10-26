@@ -39,9 +39,8 @@ class FileProcessorTest {
     @BeforeEach
     void setUp() {
         properties = new FileLoaderProperties();
-        properties.setNewSubdirectory("flow1/new");
-        properties.setLoadingSubdirectory("loading");
-        properties.setLoadedSubdirectory("flow1/loaded");
+        properties.setNewSubdirectory("new");
+        properties.setLoadedSubdirectory("loaded");
         properties.setRetryAttempts(3);
         properties.setRetryDelay(Duration.ofMillis(100));
         fileProcessor = new FileProcessor(notificationProducer, fileOperations, properties);

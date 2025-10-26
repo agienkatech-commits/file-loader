@@ -31,7 +31,7 @@ public class FileProcessingService {
     private Pair<String, Integer> processDirectory(String baseDirectory) {
         try {
 
-            log.info("processing new files in directory: {} {}", baseDirectory, Runtime.getRuntime().availableProcessors());
+            log.info("processing new files in directory: {}", baseDirectory);
             var newFilesPath = Paths.get(baseDirectory, properties.getNewSubdirectory());
             var newFiles = findNewFiles(newFilesPath);
             newFiles.forEach(file -> fileProcessor.processFile(file, baseDirectory));

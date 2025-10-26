@@ -69,6 +69,7 @@ public class FileOperations {
         } catch (IOException e) {
             log.error("Failed to process file after {} attempts: {}",
                     properties.getRetryAttempts(), source, e);
+            throw new RuntimeException(e);
         }
     }
 

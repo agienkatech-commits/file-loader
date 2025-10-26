@@ -33,7 +33,7 @@ class FileNotificationProducerTest {
         directories.put("/path/to/dir1", "binding1-out-0");
         directories.put("/path/to/dir2", "binding2-out-0");
         properties.setSourceDirectories(directories);
-        
+
         producer = new FileNotificationProducer(streamBridge, properties);
     }
 
